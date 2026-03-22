@@ -1,0 +1,11 @@
+{
+  "name": "dsa-meets-design",
+  "version": "1.0.0",
+  "description": "The DSA + Design Pattern Integration You Were Never Taught",
+  "scripts": {
+    "install": "cd dashboard && npm install",
+    "build": "cd dashboard && npm run build",
+    "start": "cd dashboard && npm start",
+    "dev": "cd dashboard && npm run dev"
+  }
+}

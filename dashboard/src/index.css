@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variables (light + dark) ─────────────────────────────────────────── */
+
+:root {
+  --color-surface:           #ffffff;
+  --color-surface-secondary: #f9f9f9;
+  --color-surface-tertiary:  #f3f3f3;
+  --color-border:            #e5e5e5;
+  --color-border-hover:      #d0d0d0;
+  --color-text-primary:      #1a1a1a;
+  --color-text-secondary:    #737373;
+  --color-text-tertiary:     #a3a3a3;
+  --color-status-unsolved:   #dfdfdf;
+  --color-accent-light:      #e8f3ff;
+  --color-accent:            #1a90ff;
+}
+
+.dark {
+  --color-surface:           #282828;
+  --color-surface-secondary: #1e1e1e;
+  --color-surface-tertiary:  #333333;
+  --color-border:            #3d3d3d;
+  --color-border-hover:      #525252;
+  --color-text-primary:      #ebebeb;
+  --color-text-secondary:    #a8a8a8;
+  --color-text-tertiary:     #6b6b6b;
+  --color-status-unsolved:   #525252;
+  --color-accent-light:      #1e3a5f;
+  --color-accent:            #3b82f6;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  margin: 0;
+  height: 100%;
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#root { height: 100%; display: flex; flex-direction: column; }
+
+/* ─── Markdown / Prose ──────────────────────────────────────────────────────── */
+
+.prose { color: var(--color-text-primary); max-width: none; line-height: 1.7; }
+
+.prose h1 {
+  font-size: 1.4rem; font-weight: 700; margin: 1.5rem 0 0.75rem;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;
+}
+.prose h2 { font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--color-text-primary); }
+.prose h3 { font-size: 1rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: var(--color-text-secondary); }
+.prose p { margin: 0.75rem 0; }
+.prose ul, .prose ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+.prose li { margin: 0.25rem 0; }
+.prose strong { font-weight: 600; color: var(--color-text-primary); }
+.prose em { font-style: italic; }
+
+.prose code {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--color-surface-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  color: var(--color-text-primary);
+}
+.prose pre {
+  background: #1a1a1a;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid #333;
+}
+.prose pre code { background: none; border: none; padding: 0; color: #d4d4d4; font-size: 0.85rem; line-height: 1.6; }
+
+.prose blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding: 0.5rem 0 0.5rem 1rem;
+  margin: 1rem 0;
+  background: var(--color-accent-light);
+  border-radius: 0 4px 4px 0;
+  color: var(--color-text-secondary);
+}
+.prose blockquote p { margin: 0; }
+
+.prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9em; }
+.prose th { background: var(--color-surface-tertiary); border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; }
+.prose td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; }
+.prose tr:nth-child(even) td { background: var(--color-surface-secondary); }
+.prose hr { border: none; border-top: 1px solid var(--color-border); margin: 1.5rem 0; }
+.prose a { color: var(--color-accent); text-decoration: none; }
+.prose a:hover { text-decoration: underline; }
+
+.hljs { background: transparent; }
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-hover); }

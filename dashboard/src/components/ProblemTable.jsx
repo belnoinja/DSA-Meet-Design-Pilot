@@ -1,0 +1,120 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PatternBadge from './PatternBadge.jsx';
+import TierBadge from './TierBadge.jsx';
+import { STATUS_ICONS } from '../lib/constants.js';
+
+const COLUMNS = [
+  { key: 'status',    label: '',         width: 'w-10',  sortable: false },
+  { key: 'id',        label: '#',        width: 'w-12',  sortable: true },
+  { key: 'name',      label: 'Problem',  width: '',      sortable: true },
+  { key: 'patterns',  label: 'Pattern',  width: 'w-40',  sortable: false },
+  { key: 'tier',      label: 'Tier',     width: 'w-12',  sortable: true },
+  { key: 'companies', label: 'Company',  width: 'w-24',  sortable: false },
+  { key: 'time_minutes', label: 'Time',  width: 'w-12',  sortable: true },
+];
+
+function sortProblems(problems, { col, dir }) {
+  if (!col) return problems;
+  return [...problems].sort((a, b) => {
+    let av = a[col], bv = b[col];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return dir === 'asc' ? -1 : 1;
+    if (av > bv) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+export default function ProblemTable({ problems }) {
+  const navigate = useNavigate();
+  const [sort, setSort] = useState({ col: 'id', dir: 'asc' });
+
+  const toggleSort = (col) => {
+    setSort(s => s.col === col
+      ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { col, dir: 'asc' }
+    );
+  };
+
+  const sorted = sortProblems(problems, sort);
+
+  if (problems.length === 0) {
+    return (
+      <div className="text-center py-12 text-text-tertiary text-sm">
+        No problems match the current filters.
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <table className="w-full table-fixed text-sm">
+        <thead className="bg-surface-tertiary border-b border-border">
+          <tr>
+            {COLUMNS.map(col => (
+              <th
+                key={col.key}
+                className={`${col.width} px-3 py-2 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wide ${
+                  col.sortable ? 'cursor-pointer hover:text-text-primary select-none' : ''
+                }`}
+                onClick={() => col.sortable && toggleSort(col.key)}
+              >
+                {col.label}
+                {col.sortable && sort.col === col.key && (
+                  <span className="ml-1">{sort.dir === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border bg-surface">
+          {sorted.map(problem => {
+            const { icon, color } = STATUS_ICONS[problem.status] || STATUS_ICONS.unsolved;
+            const num = problem.id.split('-')[0];
+            return (
+              <tr
+                key={problem.id}
+                onClick={() => navigate(`/problem/${problem.id}`)}
+                className="cursor-pointer hover:bg-surface-secondary transition-colors"
+              >
+                {/* Status */}
+                <td className="w-10 px-3 py-2.5">
+                  <span className="font-bold text-base" style={{ color }}>{icon}</span>
+                </td>
+                {/* # */}
+                <td className="w-12 px-3 py-2.5 text-text-tertiary font-mono text-xs">
+                  {num}
+                </td>
+                {/* Name */}
+                <td className="px-3 py-2.5 font-medium text-text-primary truncate">
+                  {problem.name}
+                </td>
+                {/* Patterns */}
+                <td className="w-40 px-3 py-2.5">
+                  <div className="flex flex-wrap gap-1">
+                    {(problem.patterns || []).map(p => (
+                      <PatternBadge key={p} pattern={p} />
+                    ))}
+                  </div>
+                </td>
+                {/* Tier */}
+                <td className="w-12 px-3 py-2.5">
+                  <TierBadge tier={problem.tier} />
+                </td>
+                {/* Company */}
+                <td className="w-24 px-3 py-2.5 text-text-secondary truncate">
+                  {(problem.companies || [])[0] || '—'}
+                </td>
+                {/* Time */}
+                <td className="w-12 px-3 py-2.5 text-text-tertiary">
+                  {problem.time_minutes}m
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

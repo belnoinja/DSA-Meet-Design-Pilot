@@ -1,0 +1,43 @@
+- id: "001-payment-ranker"
+  name: "Payment Method Ranker"
+  tier: 1
+  patterns: ["Strategy", "Comparator"]
+  dsa: "Sorting"
+  companies: ["Amazon", "Flipkart"]
+  time_minutes: 45
+  languages: ["cpp"]
+  prerequisite_primer: "strategy"
+  path: "problems/tier1-foundation/001-payment-ranker"
+
+- id: "003-notification-system"
+  name: "Notification System"
+  tier: 1
+  patterns: ["Observer"]
+  dsa: "Queue"
+  companies: ["Flipkart", "Swiggy"]
+  time_minutes: 45
+  languages: ["cpp"]
+  prerequisite_primer: "observer"
+  path: "problems/tier1-foundation/003-notification-system"
+
+- id: "004-vending-machine"
+  name: "Vending Machine"
+  tier: 1
+  patterns: ["State"]
+  dsa: "HashMap"
+  companies: ["Amazon", "Flipkart"]
+  time_minutes: 45
+  languages: ["cpp"]
+  prerequisite_primer: "state"
+  path: "problems/tier1-foundation/004-vending-machine"
+
+- id: "010-ride-surge-pricing"
+  name: "Ride Surge Pricing Engine"
+  tier: 2
+  patterns: ["Strategy", "Observer"]
+  dsa: "Priority Queue"
+  companies: ["Uber", "Ola"]
+  time_minutes: 60
+  languages: ["cpp"]
+  prerequisite_primer: "strategy"
+  path: "problems/tier2-intermediate/010-ride-surge-pricing"
