@@ -51,7 +51,16 @@ function loadProblems() {
   }
   try {
     const raw = fs.readFileSync(PROBLEMS_YML, 'utf8');
-    return yaml.load(raw) || [];
+    const all = yaml.load(raw) || [];
+    // Filter out problems whose folder doesn't exist on disk
+    return all.filter(p => {
+      const problemDir = path.join(REPO_ROOT, p.path);
+      if (!fs.existsSync(problemDir)) {
+        console.warn(`WARNING: Problem "${p.id}" registered in problems.yml but folder missing: ${p.path}`);
+        return false;
+      }
+      return true;
+    });
   } catch (e) {
     console.error('ERROR: Failed to parse problems.yml:', e.message);
     return [];
@@ -84,7 +93,53 @@ function createEmptyProgress() {
     updated_at: new Date().toISOString(),
     problems: {},
     primers_read: [],
+    activity: [],
   };
+}
+
+function logActivity(progress, actionType) {
+  if (!progress.activity) progress.activity = [];
+  const today = new Date().toISOString().slice(0, 10);
+  let entry = progress.activity.find(a => a.date === today);
+  if (!entry) {
+    entry = { date: today, actions: [], count: 0 };
+    progress.activity.push(entry);
+  }
+  entry.actions.push(actionType);
+  entry.count = entry.actions.length;
+}
+
+function calculateActivityStreak(progress) {
+  const activityDates = new Set((progress.activity || []).filter(a => a.count > 0).map(a => a.date));
+
+  // Also include legacy dates from problems
+  for (const p of Object.values(progress.problems)) {
+    if (p.started_at) activityDates.add(p.started_at.slice(0, 10));
+    if (p.completed_at) activityDates.add(p.completed_at.slice(0, 10));
+    if (p.parts) {
+      for (const part of Object.values(p.parts)) {
+        if (part.passed_at) activityDates.add(part.passed_at.slice(0, 10));
+      }
+    }
+  }
+
+  if (activityDates.size === 0) return 0;
+
+  const sorted = [...activityDates].sort().reverse();
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
+
+  let streak = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1]);
+    const curr = new Date(sorted[i]);
+    const diff = (prev - curr) / 86400000;
+    if (diff === 1) streak++;
+    else break;
+  }
+  return streak;
 }
 
 // ─── v2 → v3 migration ──────────────────────────────────────────────────────
@@ -533,6 +588,7 @@ app.post('/api/problems/:id/code', (req, res) => {
   if (!progress.problems[id]) progress.problems[id] = {};
   if (!progress.problems[id].code) progress.problems[id].code = {};
   progress.problems[id].code[mode] = code;
+  logActivity(progress, 'saved_code');
   saveProgress(progress);
 
   res.json({ saved: true, mode });
@@ -671,6 +727,7 @@ int main() {
         if (part === totalParts) {
           freshEntry.completed_at = new Date().toISOString();
         }
+        logActivity(freshProgress, 'passed_part');
       }
 
       freshProgress.problems[id] = freshEntry;
@@ -798,6 +855,7 @@ app.post('/api/problems/:id/parts/:part/skip', (req, res) => {
 
   if (!entry.started_at) entry.started_at = new Date().toISOString();
 
+  logActivity(progress, 'passed_part');
   progress.problems[id] = entry;
   saveProgress(progress);
 
@@ -897,9 +955,19 @@ app.post('/api/primers/:name/read', (req, res) => {
   if (!progress.primers_read) progress.primers_read = [];
   if (!progress.primers_read.includes(name)) {
     progress.primers_read.push(name);
+    logActivity(progress, 'read_primer');
   }
   saveProgress(progress);
   res.json({ name, read: true });
+});
+
+// ── GET /api/activity ─────────────────────────────────────────────────────────
+
+app.get('/api/activity', (req, res) => {
+  const progress = loadProgress();
+  const activity = progress.activity || [];
+  const streak = calculateActivityStreak(progress);
+  res.json({ activity, streak });
 });
 
 // ── GET /api/stats ────────────────────────────────────────────────────────────
@@ -979,6 +1047,47 @@ app.get('/api/stats', (req, res) => {
   const streak = calculateStreak(progress);
 
   res.json({ overall, by_tier, by_pattern, by_difficulty_mode, parts_stats, primers: primersStats, streak });
+});
+
+// ── GET /api/roadmap/progress ─────────────────────────────────────────────────
+// Returns problem statuses, primers read, and manual roadmap checks for the roadmap page
+
+app.get('/api/roadmap/progress', (req, res) => {
+  const problems    = loadProblems();
+  const progress    = loadProgress();
+  const primersRead = progress.primers_read || [];
+  const merged      = problems.map(p => mergeProblemWithProgress(p, progress, primersRead));
+
+  const problemStatuses = {};
+  for (const p of merged) {
+    problemStatuses[p.id] = {
+      status:       p.status,
+      parts_passed: p.parts_passed,
+      total_parts:  p.total_parts,
+      current_part: p.current_part,
+    };
+  }
+
+  res.json({
+    problems:       problemStatuses,
+    primers_read:   primersRead,
+    manual_checks:  progress.roadmap_checks || {},
+  });
+});
+
+// ── POST /api/roadmap/check ──────────────────────────────────────────────────
+// Persist manual checkbox toggles for non-problem roadmap tasks
+
+app.post('/api/roadmap/check', (req, res) => {
+  const { key, checked } = req.body;
+  if (typeof key !== 'string') return res.status(400).json({ error: 'key must be a string' });
+
+  const progress = loadProgress();
+  if (!progress.roadmap_checks) progress.roadmap_checks = {};
+  progress.roadmap_checks[key] = !!checked;
+  saveProgress(progress);
+
+  res.json({ key, checked: !!checked });
 });
 
 // ── GET /api/runner-status ────────────────────────────────────────────────────

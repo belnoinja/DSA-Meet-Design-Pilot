@@ -58,6 +58,10 @@ export const api = {
     return request(`${BASE}/stats`);
   },
 
+  getActivity() {
+    return request(`${BASE}/activity`);
+  },
+
   getStarter(id, mode, part = 1) {
     return request(`${BASE}/problems/${id}/starter?mode=${mode}&part=${part}`);
   },
@@ -92,6 +96,17 @@ export const api = {
   // v3: skip part (only when g++ unavailable)
   skipPart(id, part) {
     return request(`${BASE}/problems/${id}/parts/${part}/skip`, { method: 'POST' });
+  },
+
+  getRoadmapProgress() {
+    return request(`${BASE}/roadmap/progress`);
+  },
+
+  setRoadmapCheck(key, checked) {
+    return request(`${BASE}/roadmap/check`, {
+      method: 'POST',
+      body: JSON.stringify({ key, checked }),
+    });
   },
 
   runnerStatus() {

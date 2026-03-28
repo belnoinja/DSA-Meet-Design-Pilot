@@ -1,14 +1,46 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
-export default function CodeEditor({ value, onChange, language = 'cpp' }) {
+export default function CodeEditor({ value, onChange, language = 'cpp', onSave, onSubmit }) {
   const { dark } = useTheme();
   const editorRef = useRef(null);
 
   const handleMount = (editor) => {
     editorRef.current = editor;
+
+    // Register Ctrl+S keybinding in Monaco
+    editor.addCommand(
+      // Monaco.KeyMod.CtrlCmd | Monaco.KeyCode.KeyS
+      2048 | 49, // CtrlCmd = 2048, KeyS = 49
+      () => { onSave?.(); }
+    );
+
+    // Register Ctrl+Enter keybinding in Monaco
+    editor.addCommand(
+      // Monaco.KeyMod.CtrlCmd | Monaco.KeyCode.Enter
+      2048 | 3, // CtrlCmd = 2048, Enter = 3
+      () => { onSubmit?.(); }
+    );
   };
+
+  // Global keyboard shortcuts (for when editor is not focused)
+  useEffect(() => {
+    const handler = (e) => {
+      // Ctrl+S / Cmd+S
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        onSave?.();
+      }
+      // Ctrl+Enter / Cmd+Enter
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        onSubmit?.();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onSave, onSubmit]);
 
   return (
     <Editor

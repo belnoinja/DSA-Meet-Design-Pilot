@@ -5,9 +5,12 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => {
     try {
-      return localStorage.getItem('theme') === 'dark';
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved === 'dark';
+      // Default to dark mode
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -15,8 +18,10 @@ export function ThemeProvider({ children }) {
     const root = document.documentElement;
     if (dark) {
       root.classList.add('dark');
+      root.classList.remove('light');
     } else {
       root.classList.remove('dark');
+      root.classList.add('light');
     }
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
