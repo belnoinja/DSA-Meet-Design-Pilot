@@ -69,7 +69,7 @@ You can switch modes at any point. Most people start in Learning, attempt Guided
 
 ---
 
-## Problems (Pilot — 10 total)
+## Problems (Pilot — 20 total)
 
 ### Tier 1 — Foundation
 
@@ -90,6 +90,16 @@ You can switch modes at any point. Most people start in Learning, attempt Guided
 |---|---------|----------|-----|-----------|
 | 009 | Meeting Room Scheduler | Strategy + Observer | Interval Checking + Priority Queue | Flipkart, Razorpay, Groww |
 | 010 | Ride Surge Pricing Engine | Strategy + Observer | Priority Queue | Uber, Ola |
+| 012 | Elevator System | State + Strategy + Command | Queue + PriorityQueue + HashMap | Adobe |
+| 013 | Parking Lot System | Factory + Strategy + Singleton | HashMap + Queue | Salesforce |
+| 014 | Splitwise Expense-Sharing | Strategy + Factory + Observer | HashMap + Graph + Greedy | ShareChat, Razorpay, Flipkart, Paytm |
+| 015 | BookMyShow Ticket Booking | Strategy + Observer + State | HashMap + Matrix + Queue | DoorDash, BookMyShow, Swiggy, Paytm |
+| 016 | Amazon Locker System | Strategy + Factory + State | HashMap + Queue | Amazon |
+| 017 | LRU Cache | Singleton + Observer + Strategy | HashMap + Doubly Linked List | Kutumb |
+| 018 | Simplified Twitter | Observer + Factory + Singleton | HashMap + HashSet + Heap + LinkedList | AngelOne |
+| 019 | Online Auction System | Strategy + Observer + Factory + State | HashMap + PriorityQueue + Sorting | Flipkart |
+| 020 | Logger System | Strategy + Observer + Factory + Singleton | HashMap + String Parsing + Queue | Amazon |
+| 021 | Ride-Sharing Application | Strategy + Factory | HashMap + Graph + BFS | Flipkart |
 
 ---
 
@@ -105,19 +115,6 @@ Primers available: **Strategy · Observer · State · Singleton**
 
 - Node.js 18+
 - g++ with C++17 support (`g++ --version` to verify)
-- GoogleTest installed
-
-**Installing GoogleTest (Ubuntu/WSL):**
-```bash
-sudo apt-get install libgtest-dev
-cd /usr/src/gtest && sudo cmake . && sudo make
-sudo cp lib/*.a /usr/lib
-```
-
-**Installing GoogleTest (macOS):**
-```bash
-brew install googletest
-```
 
 ---
 
@@ -150,10 +147,10 @@ DSA-Meet-Design-Pilot/
 │   │   │   ├── README.md              # Problem statement (parts format)
 │   │   │   ├── DESIGN.md              # Why this pattern, what breaks without it
 │   │   │   ├── boilerplate/cpp/       # interview / guided / learning × per part
-│   │   │   └── tests/cpp/             # GoogleTest suites per part
+│   │   │   └── tests/cpp/             # Test suites per part
 │   │   └── ...
 │   └── tier2-intermediate/
-├── patterns/                          # Design pattern primers (Strategy, Observer, State, Singleton)
+├── patterns/                          # Design pattern primers
 ├── docs/_data/problems.yml            # Problem registry
 ├── dashboard/                         # React + Express dashboard
 │   ├── server.js
@@ -175,7 +172,7 @@ You've done DSA. You haven't done LLD. This is the missing piece.
 
 ## This is a pilot
 
-10 problems. Real test suites. A working dashboard. Enough to get meaningful feedback before the full launch.
+20 problems. Real test suites. A working dashboard. Enough to get meaningful feedback before the full launch.
 
 If you find a bug, open an issue. If a DESIGN.md explanation didn't click, open an issue and say what was confusing. That feedback directly shapes what gets built next.
 
