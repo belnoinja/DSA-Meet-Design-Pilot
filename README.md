@@ -7,6 +7,8 @@
 >
 > That's a real Amazon LLD round. That candidate was prepared — just not for this.
 
+![Demo — solving Problem 001 on the dashboard](assets/Demo-DSA-Meet-Design.gif)
+
 ---
 
 ## What's the gap?
@@ -40,8 +42,6 @@ When a new part unlocks, your design either survives the new requirement — or 
 ## The local dashboard
 
 Clone the repo, run two commands, and you get a LeetCode-style interface on your machine:
-
-![Demo — solving Problem 001 on the dashboard](assets/Demo-DSA-Meet-Design.gif)
 
 ```bash
 npm install
