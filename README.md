@@ -41,6 +41,8 @@ When a new part unlocks, your design either survives the new requirement — or 
 
 Clone the repo, run two commands, and you get a LeetCode-style interface on your machine:
 
+![Demo — solving Problem 001 on the dashboard](assets/Demo-DSA-Meet-Design.gif)
+
 ```bash
 npm install
 npm run dev
