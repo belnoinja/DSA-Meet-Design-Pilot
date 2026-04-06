@@ -31,7 +31,7 @@ const KBD_STYLE = {
 };
 
 const TABS_LEFT  = ['Description', 'Notes'];
-const TABS_RIGHT = ['Code', 'Design', 'AI Prompt'];
+const TABS_RIGHT = ['Code', 'Design', 'AI Prompt', 'Submissions'];
 
 function canViewDesign(mode, parts) {
   if (mode === 'learning') return true;
@@ -184,6 +184,8 @@ export default function ProblemView({ onProgressChange }) {
 
   const [designLoading, setDesignLoading] = useState(false);
   const [aiLoading,     setAiLoading]     = useState(false);
+  const [submissions,   setSubmissions]   = useState([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
   const [carryDialog, setCarryDialog] = useState(null);
 
@@ -399,6 +401,30 @@ export default function ProblemView({ onProgressChange }) {
     }
   }, [parts, id, mode, code, toast, refreshParts, onProgressChange, runnerAvail]);
 
+  const handleRunCode = useCallback(async () => {
+    const currentPart = getCurrentPart(parts);
+    setSubmitting(true);
+    setSubmitResult(null);
+    setSubmitStatus('Compiling...');
+    api.saveCode(id, mode, code).catch(console.error);
+    try {
+      const result = await api.runPart(id, currentPart, mode, code);
+      setSubmitResult(result);
+      setSubmitting(false);
+      setSubmitStatus('');
+      if (result.success) {
+        toast.success(`Run passed! (Did not submit)`);
+      } else {
+        toast.error(`Run failed.`);
+      }
+    } catch (err) {
+      setSubmitResult({ success: false, submitted_part: getCurrentPart(parts), compilation: { success: false, errors: err.message }, parts: [], runner_available: runnerAvail });
+      setSubmitting(false);
+      setSubmitStatus('');
+      toast.error('Run failed');
+    }
+  }, [parts, id, mode, code, toast, runnerAvail]);
+
   const handleSkipPart = async () => {
     const currentPart = getCurrentPart(parts);
     try {
@@ -471,6 +497,12 @@ export default function ProblemView({ onProgressChange }) {
       api.getProblemAiPrompt(id)
         .then(d => { setAiPrompt(d.markdown); setAiLoading(false); })
         .catch(() => { setAiPrompt('AI_REVIEW_PROMPT.md not found.'); setAiLoading(false); });
+    }
+    if (tab === 'Submissions' && !submissions.length) {
+      setSubmissionsLoading(true);
+      api.getSubmissions(id)
+        .then(d => { setSubmissions(d.submissions || []); setSubmissionsLoading(false); })
+        .catch(() => { setSubmissions([]); setSubmissionsLoading(false); });
     }
   };
 
@@ -926,49 +958,50 @@ export default function ProblemView({ onProgressChange }) {
                   className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5"
                   style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
                 >
-                  {allPartsPassed ? (
-                    <div
-                      className="flex-1 py-2 text-sm font-semibold text-center rounded-xl"
-                      style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}
+                  <button
+                    onClick={handleRunCode}
+                    disabled={submitting || !runnerAvail}
+                    title={!runnerAvail ? 'g++ required' : 'Run tests without submitting'}
+                    className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: 'var(--color-surface-tertiary)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    Run Code
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting || !runnerAvail}
+                    title={!runnerAvail ? 'g++ required \u2014 install g++ or use Skip' : ''}
+                    className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: submitting
+                        ? 'var(--color-border)'
+                        : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                      boxShadow: submitting ? 'none' : '0 2px 8px rgba(99,102,241,0.35)',
+                    }}
+                  >
+                    {submitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {submitStatus || 'Working\u2026'}
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        {`\u25B6 Submit Part ${currentPartNum}`}
+                        <span style={{ ...KBD_STYLE, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', marginLeft: 0 }}>Ctrl+Enter</span>
+                      </span>
+                    )}
+                  </button>
+                  {!runnerAvail && (
+                    <button
+                      onClick={handleSkipPart}
+                      className="text-xs text-text-tertiary hover:text-text-secondary underline flex-shrink-0 transition-colors"
+                      title="Manually unlock next part (g++ not available)"
                     >
-                      All Parts Complete
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleSubmit}
-                        disabled={submitting || !runnerAvail}
-                        title={!runnerAvail ? 'g++ required \u2014 install g++ or use Skip' : ''}
-                        className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{
-                          background: submitting
-                            ? 'var(--color-border)'
-                            : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                          boxShadow: submitting ? 'none' : '0 2px 8px rgba(99,102,241,0.35)',
-                        }}
-                      >
-                        {submitting ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            {submitStatus || 'Submitting\u2026'}
-                          </span>
-                        ) : (
-                          <span className="flex items-center justify-center gap-2">
-                            {`\u25B6 Submit Part ${currentPartNum}`}
-                            <span style={{ ...KBD_STYLE, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', marginLeft: 0 }}>Ctrl+Enter</span>
-                          </span>
-                        )}
-                      </button>
-                      {!runnerAvail && (
-                        <button
-                          onClick={handleSkipPart}
-                          className="text-xs text-text-tertiary hover:text-text-secondary underline flex-shrink-0 transition-colors"
-                          title="Manually unlock next part (g++ not available)"
-                        >
-                          Skip {'\u2192'}
-                        </button>
-                      )}
-                    </>
+                      Skip {'\u2192'}
+                    </button>
                   )}
                 </div>
 
@@ -1101,6 +1134,46 @@ export default function ProblemView({ onProgressChange }) {
                   problemName={problem?.name}
                   loading={aiLoading}
                 />
+              </div>
+            )}
+
+            {/* Submissions tab */}
+            {rightTab === 'Submissions' && (
+              <div className="flex-1 overflow-y-auto px-5 py-4" style={{ background: 'var(--color-surface)' }}>
+                {submissionsLoading ? (
+                  <div className="text-text-tertiary text-sm">Loading submissions...</div>
+                ) : submissions.length === 0 ? (
+                  <div className="text-text-tertiary text-sm">No submissions yet.</div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {submissions.map((sub, idx) => {
+                      const date = new Date(sub.time);
+                      return (
+                        <div key={sub.id || idx} className="p-3 border border-border rounded-lg" style={{ background: 'var(--color-surface-secondary)' }}>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-semibold" style={{ color: sub.success ? '#22c55e' : '#f87171' }}>
+                              {sub.success ? 'Accepted' : 'Failed'}
+                            </span>
+                            <span className="text-xs text-text-tertiary">
+                              {date.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-text-secondary">Part {sub.part} • {sub.mode}</span>
+                            <button
+                              onClick={() => { setCode(sub.code); setRightTab('Code'); toast.success('Loaded submission code'); }}
+                              className="text-xs font-medium px-2 py-1 rounded transition-colors"
+                              style={{ background: 'var(--color-surface-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                              title="Load this submission into the editor"
+                            >
+                              View Code
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

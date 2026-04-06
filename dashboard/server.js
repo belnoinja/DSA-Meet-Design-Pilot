@@ -613,6 +613,122 @@ app.post('/api/problems/:id/code', (req, res) => {
   res.json({ saved: true, mode });
 });
 
+// ── GET /api/problems/:id/submissions ← NEW ────────────────────────────────
+app.get('/api/problems/:id/submissions', (req, res) => {
+  const { id } = req.params;
+  const progress = loadProgress();
+  const entry = progress.problems[id] || {};
+  res.json({ submissions: entry.submissions || [] });
+});
+
+// ── POST /api/problems/:id/run ← NEW ──────────────────────────────────────
+
+app.post('/api/problems/:id/run', (req, res) => {
+  const { id } = req.params;
+  const { part, mode, code } = req.body;
+
+  if (typeof code !== 'string') return res.status(400).json({ error: 'code must be a string' });
+  if (!Number.isInteger(part) || part < 1) return res.status(400).json({ error: 'part must be a positive integer' });
+
+  if (!testRunnerAvailable) {
+    return res.status(503).json({
+      error: 'g++ not available. Install g++ to use the test runner.',
+      runner_available: false,
+    });
+  }
+
+  const problems = loadProblems();
+  const problem  = problems.find(p => p.id === id);
+  if (!problem) return res.status(404).json({ error: `Problem ${id} not found` });
+
+  const partDefs   = problem.parts || [{ name: 'Complete', description_marker: '## Part 1', test_file: 'part1_test.cpp' }];
+  const totalParts = partDefs.length;
+
+  if (part > totalParts) {
+    return res.status(400).json({ error: `Part ${part} does not exist. Problem has ${totalParts} parts.` });
+  }
+
+  // Save code first without altering progress status
+  const progress = loadProgress();
+  if (!progress.problems[id]) progress.problems[id] = {};
+  const entry = progress.problems[id];
+  if (!entry.code) entry.code = {};
+  entry.code[mode || 'interview'] = code;
+  ensurePartsInitialized(entry, totalParts);
+  saveProgress(progress);
+
+  // Create temp directory
+  const timestamp = Date.now();
+  const tmpDir    = path.join(os.tmpdir(), `dsa-md-run-${id}-${timestamp}`);
+  fs.mkdirSync(tmpDir, { recursive: true });
+
+  const solutionFile = path.join(tmpDir, 'solution.cpp');
+  fs.writeFileSync(solutionFile, code, 'utf8');
+
+  let combined = '#include "solution.cpp"\n\n';
+  for (let i = 1; i <= part; i++) {
+    const testFile = partDefs[i - 1].test_file;
+    const src      = path.join(REPO_ROOT, problem.path, 'tests', 'cpp', testFile);
+    if (fs.existsSync(src)) {
+      let content = fs.readFileSync(src, 'utf8');
+      content = content.replace(/^\s*#include\s+"solution\.cpp"\s*$/m, '// (included above)');
+      combined += `// --- ${testFile} ---\n${content}\n\n`;
+    }
+  }
+
+  const partNames = partDefs.slice(0, part).map((_, i) => `part${i + 1}_tests`);
+  combined += `
+// --- generated main ---
+int main() {
+  int total_failures = 0;
+  ${partNames.map(fn => `total_failures += ${fn}();`).join('\n  ')}
+  return total_failures > 0 ? 1 : 0;
+}
+`;
+  const combinedFile = path.join(tmpDir, 'combined.cpp');
+  fs.writeFileSync(combinedFile, combined, 'utf8');
+
+  const outBin   = path.join(tmpDir, os.platform() === 'win32' ? 'runner.exe' : 'runner');
+  const compileCmd = `g++ -std=c++17 -DRUNNING_TESTS -o "${outBin}" "${combinedFile}" 2>&1`;
+
+  const startTime = Date.now();
+
+  exec(compileCmd, { timeout: 15000, cwd: tmpDir }, (compileErr, compileOut) => {
+    if (compileErr) {
+      cleanup(tmpDir);
+      return res.json({
+        success: false,
+        submitted_part: part,
+        compilation: { success: false, errors: compileOut || compileErr.message },
+        parts: [],
+        time_ms: Date.now() - startTime,
+        runner_available: true,
+      });
+    }
+
+    exec(`"${outBin}"`, { timeout: 10000, cwd: tmpDir }, (runErr, stdout, stderr) => {
+      cleanup(tmpDir);
+
+      const output = stdout || '';
+      const parsedParts = parseTestOutput(output, partDefs.slice(0, part));
+
+      const allPassed = parsedParts.every(p => p.all_passed);
+      const timedOut  = runErr && runErr.killed;
+
+      res.json({
+        success:         allPassed && !timedOut,
+        submitted_part:  part,
+        compilation:     { success: true, errors: null },
+        parts:           parsedParts,
+        unlocked_next_part: false, // Run doesn't unlock
+        timed_out:       timedOut || false,
+        time_ms:         Date.now() - startTime,
+        runner_available: true,
+      });
+    });
+  });
+});
+
 // ── POST /api/problems/:id/submit ← NEW ──────────────────────────────────────
 
 app.post('/api/problems/:id/submit', (req, res) => {
@@ -745,6 +861,17 @@ int main() {
         }
         logActivity(freshProgress, 'passed_part');
       }
+
+      // Record submission
+      if (!freshEntry.submissions) freshEntry.submissions = [];
+      freshEntry.submissions.unshift({
+        id: timestamp.toString(),
+        time: new Date().toISOString(),
+        part,
+        mode: mode || 'interview',
+        code,
+        success: allPassed && !timedOut,
+      });
 
       freshProgress.problems[id] = freshEntry;
       saveProgress(freshProgress);

@@ -85,6 +85,19 @@ export const api = {
     });
   },
 
+  // v3: run code for tests without progression
+  runPart(id, part, mode, code) {
+    return request(`${BASE}/problems/${id}/run`, {
+      method: 'POST',
+      body: JSON.stringify({ part, mode, code }),
+    });
+  },
+
+  // v3: get code submissions
+  getSubmissions(id) {
+    return request(`${BASE}/problems/${id}/submissions`);
+  },
+
   // v3: record carry-forward choice when new part unlocks
   setCarryForward(id, part, carryForward) {
     return request(`${BASE}/problems/${id}/parts/${part}/carry-forward`, {
