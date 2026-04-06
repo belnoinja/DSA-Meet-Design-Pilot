@@ -152,6 +152,51 @@ function useStopwatch(problemId) {
   return { display: `${mins}:${secs}`, paused, toggle };
 }
 
+// ── Submission Tile ────────────────────────────────────────────────────────────
+function SubmissionTile({ sub, setCode, setRightTab, toast }) {
+  const [expanded, setExpanded] = useState(false);
+  const date = new Date(sub.time);
+  
+  return (
+    <div className="p-3 border border-border rounded-lg" style={{ background: 'var(--color-surface-secondary)' }}>
+      <div 
+        className="flex justify-between items-center mb-2 cursor-pointer group" 
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="text-xs font-semibold flex items-center gap-1.5 transition-colors group-hover:opacity-80" style={{ color: sub.success ? '#22c55e' : '#f87171' }}>
+          <svg
+            width="10" height="10" viewBox="0 0 10 10"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+            className="flex-shrink-0"
+          >
+            {expanded ? <path d="M2 3l3 3 3-3" /> : <path d="M2 7l3-3 3 3" />}
+          </svg>
+          {sub.success ? 'Accepted' : 'Failed'}
+        </span>
+        <span className="text-xs text-text-tertiary">
+          {date.toLocaleString()}
+        </span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-text-secondary pl-4">Part {sub.part} • {sub.mode}</span>
+        <button
+          onClick={() => { setCode(sub.code); setRightTab('Code'); toast.success('Loaded submission code'); }}
+          className="text-xs font-medium px-2 py-1 rounded transition-colors"
+          style={{ background: 'var(--color-surface-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+          title="Load this submission into the editor"
+        >
+          Load Code
+        </button>
+      </div>
+      {expanded && (
+        <div className="mt-3 p-3 rounded overflow-x-auto" style={{ background: '#1e1e1e', border: '1px solid var(--color-border)' }}>
+          <pre className="text-xs font-mono leading-relaxed m-0" style={{ color: '#d4d4d4' }}>{sub.code}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProblemView({ onProgressChange }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -186,6 +231,7 @@ export default function ProblemView({ onProgressChange }) {
   const [aiLoading,     setAiLoading]     = useState(false);
   const [submissions,   setSubmissions]   = useState([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [isEditorExpanded, setIsEditorExpanded] = useState(false);
 
   const [carryDialog, setCarryDialog] = useState(null);
 
@@ -755,8 +801,12 @@ export default function ProblemView({ onProgressChange }) {
 
           {/* LEFT PANEL */}
           <div
-            className="flex flex-col min-h-0 overflow-hidden"
-            style={{ width: `${leftWidth}%`, borderRight: '1px solid var(--color-border)' }}
+            className="flex flex-col min-h-0 overflow-hidden transition-all duration-300"
+            style={{ 
+              width: isEditorExpanded ? '0%' : `${leftWidth}%`, 
+              borderRight: isEditorExpanded ? 'none' : '1px solid var(--color-border)',
+              display: isEditorExpanded ? 'none' : 'flex'
+            }}
           >
             {/* Tab bar */}
             <div
@@ -842,7 +892,7 @@ export default function ProblemView({ onProgressChange }) {
           <div
             onMouseDown={onMouseDown}
             className="w-1 flex-shrink-0 cursor-col-resize transition-colors"
-            style={{ background: 'var(--color-border)' }}
+            style={{ background: 'var(--color-border)', display: isEditorExpanded ? 'none' : 'block' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-accent)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-border)'; }}
           />
@@ -883,6 +933,28 @@ export default function ProblemView({ onProgressChange }) {
               {/* Save + Reset buttons (right side) */}
               {rightTab === 'Code' && (
                 <div className="ml-auto flex items-center gap-2 pr-2">
+                  {/* Expand Code button */}
+                  <button
+                    onClick={() => setIsEditorExpanded(!isEditorExpanded)}
+                    className="flex items-center justify-center p-1.5 rounded transition-colors"
+                    style={{ color: isEditorExpanded ? 'var(--color-accent)' : 'var(--color-text-secondary)', background: isEditorExpanded ? 'rgba(99,102,241,0.1)' : 'transparent', border: '1px solid transparent', fontSize: 11 }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.color = 'var(--color-text-primary)';
+                      e.currentTarget.style.background = 'var(--color-surface-tertiary)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.color = isEditorExpanded ? 'var(--color-accent)' : 'var(--color-text-secondary)';
+                      e.currentTarget.style.background = isEditorExpanded ? 'rgba(99,102,241,0.1)' : 'transparent';
+                    }}
+                    title={isEditorExpanded ? "Restore split view" : "Expand code editor"}
+                  >
+                    {isEditorExpanded ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                    )}
+                  </button>
+
                   {/* Reset Code button -- subtle, not prominent */}
                   <button
                     onClick={() => setShowResetConfirm(true)}
@@ -955,14 +1027,14 @@ export default function ProblemView({ onProgressChange }) {
 
                 {/* Submit button bar */}
                 <div
-                  className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5"
+                  className={`flex-shrink-0 flex items-center gap-2 ${isEditorExpanded ? 'justify-end px-3 py-1.5' : 'px-3 py-2.5'}`}
                   style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
                 >
                   <button
                     onClick={handleRunCode}
                     disabled={submitting || !runnerAvail}
                     title={!runnerAvail ? 'g++ required' : 'Run tests without submitting'}
-                    className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${isEditorExpanded ? 'px-4 py-1.5 text-xs rounded-lg' : 'flex-1 py-2.5 text-sm rounded-xl'} font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                     style={{
                       background: 'var(--color-surface-tertiary)',
                       color: 'var(--color-text-primary)'
@@ -974,7 +1046,7 @@ export default function ProblemView({ onProgressChange }) {
                     onClick={handleSubmit}
                     disabled={submitting || !runnerAvail}
                     title={!runnerAvail ? 'g++ required \u2014 install g++ or use Skip' : ''}
-                    className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${isEditorExpanded ? 'px-4 py-1.5 text-xs rounded-lg' : 'flex-1 py-2.5 text-sm rounded-xl'} font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                     style={{
                       background: submitting
                         ? 'var(--color-border)'
@@ -990,7 +1062,7 @@ export default function ProblemView({ onProgressChange }) {
                     ) : (
                       <span className="flex items-center justify-center gap-2">
                         {`\u25B6 Submit Part ${currentPartNum}`}
-                        <span style={{ ...KBD_STYLE, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', marginLeft: 0 }}>Ctrl+Enter</span>
+                        {!isEditorExpanded && <span style={{ ...KBD_STYLE, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', marginLeft: 0 }}>Ctrl+Enter</span>}
                       </span>
                     )}
                   </button>
@@ -1006,34 +1078,40 @@ export default function ProblemView({ onProgressChange }) {
                 </div>
 
                 {/* Test output drag handle (horizontal) */}
-                <div
-                  onMouseDown={onTestDragStart}
-                  className="flex-shrink-0"
-                  style={{
-                    height: 5,
-                    cursor: 'row-resize',
-                    background: 'var(--color-border)',
-                    borderTop: '1px solid var(--color-border)',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-accent)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-border)'; }}
-                />
+                {!isEditorExpanded && (
+                  <div
+                    onMouseDown={onTestDragStart}
+                    className="flex-shrink-0"
+                    style={{
+                      height: 5,
+                      cursor: 'row-resize',
+                      background: 'var(--color-border)',
+                      borderTop: '1px solid var(--color-border)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-accent)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-border)'; }}
+                  />
+                )}
 
                 {/* Test output (resizable) */}
-                <div
-                  className="flex-shrink-0 overflow-y-auto"
-                  style={{ height: testPanelHeight, background: 'var(--color-surface-secondary)' }}
-                >
-                  <TestOutput result={submitResult} running={submitting} submitStatus={submitStatus} />
-                </div>
+                {!isEditorExpanded && (
+                  <div
+                    className="flex-shrink-0 overflow-y-auto"
+                    style={{ height: testPanelHeight, background: 'var(--color-surface-secondary)' }}
+                  >
+                    <TestOutput result={submitResult} running={submitting} submitStatus={submitStatus} />
+                  </div>
+                )}
 
                 {/* Run locally command */}
-                <div
-                  className="flex-shrink-0 border-t border-border px-3 py-2"
-                  style={{ background: 'var(--color-surface)' }}
-                >
-                  <CopyCommand command={command} />
-                </div>
+                {!isEditorExpanded && (
+                  <div
+                    className="flex-shrink-0 border-t border-border px-3 py-2"
+                    style={{ background: 'var(--color-surface)' }}
+                  >
+                    <CopyCommand command={command} />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1146,32 +1224,15 @@ export default function ProblemView({ onProgressChange }) {
                   <div className="text-text-tertiary text-sm">No submissions yet.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {submissions.map((sub, idx) => {
-                      const date = new Date(sub.time);
-                      return (
-                        <div key={sub.id || idx} className="p-3 border border-border rounded-lg" style={{ background: 'var(--color-surface-secondary)' }}>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold" style={{ color: sub.success ? '#22c55e' : '#f87171' }}>
-                              {sub.success ? 'Accepted' : 'Failed'}
-                            </span>
-                            <span className="text-xs text-text-tertiary">
-                              {date.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-text-secondary">Part {sub.part} • {sub.mode}</span>
-                            <button
-                              onClick={() => { setCode(sub.code); setRightTab('Code'); toast.success('Loaded submission code'); }}
-                              className="text-xs font-medium px-2 py-1 rounded transition-colors"
-                              style={{ background: 'var(--color-surface-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                              title="Load this submission into the editor"
-                            >
-                              View Code
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {submissions.map((sub, idx) => (
+                      <SubmissionTile 
+                        key={sub.id || idx} 
+                        sub={sub} 
+                        setCode={setCode} 
+                        setRightTab={setRightTab} 
+                        toast={toast} 
+                      />
+                    ))}
                   </div>
                 )}
               </div>
